@@ -1,0 +1,19 @@
+{
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 500,
+            "server": "127.0.0.1",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "Sales_and profitability_analysis",
+            "database": "Sales_and_profitability_analysis",
+            "username": "root",
+            "password": "Abhi8383055393"
+        }
+    ]
+}
