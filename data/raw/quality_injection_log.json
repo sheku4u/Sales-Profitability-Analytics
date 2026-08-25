@@ -1,0 +1,28 @@
+{
+  "customers.csv": [
+    "missing_optional_fields",
+    "invalid_age"
+  ],
+  "products.csv": [
+    "invalid_unit_cost",
+    "inconsistent_category",
+    "missing_category"
+  ],
+  "orders.csv": [
+    "duplicate_like_order_ids",
+    "orphan_customer_ids",
+    "future_dates",
+    "status_inconsistency"
+  ],
+  "order_items.csv": [
+    "invalid_quantity",
+    "invalid_discount",
+    "orphan_product_ids",
+    "duplicate_like_lines"
+  ],
+  "returns.csv": [
+    "return_quantity_anomaly",
+    "return_date_anomaly",
+    "reason_inconsistency"
+  ]
+}

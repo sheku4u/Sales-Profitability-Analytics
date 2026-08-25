@@ -1,0 +1,11 @@
+region_id,region_name,state_count
+R01,North,5
+R02,South,5
+R03,East,4
+R04,West,4
+R05,Central,3
+R06,North-East,4
+R07,NCR,2
+R08,Metro,8
+R09,Tier-2,12
+R10,Tier-3,10
