@@ -34,3 +34,48 @@
 
 -- 6. What edge cases exist?
 -- customer could make only 1 order, might be customer returning the order 
+
+with monthly_orders_details as (
+    SELECT
+        customer_id,
+        date_format(order_date, "%Y-%m") as order_month,
+        date_format(order_date, "%m") as monthly_num
+        sum(sales_amount) as revenue
+    from orders_table
+    GROUP BY customer_id, date_format(order_date, "%Y-%m"), date_format(order_date, "%m")
+),
+
+unique_monthly_data as (
+    SELECT
+        customer_id,
+        order_month,
+        revenue,
+       count(*) over(PARTITION BY customer_id) as monthly_rnk,
+       (case
+        when monthly_num not in (1 and 12) then 0
+        else monthly_num end) as checking_num
+    from monthly_orders_details 
+),
+previous_calculation_data as (
+    SELECT
+        *,
+        lag(revenue) over(PARTITION BY customer_id ORDER BY order_month ASC) as prev_value
+    from unique_monthly_data
+),
+
+main_calculation as (
+    SELECT
+        *,
+        
+        round((revenue-prev_value/prev_value )*100,2) as revenue_growth_pct,
+        (case
+            when revenue > prev_value then "Increased"
+            when revenue < prev_value then "Decreased"
+            else "No Growth"
+            end) as revenue_status
+    from unique_monthly_data
+    
+)
+SELECT
+* from previous_calculation_data ; 
+
