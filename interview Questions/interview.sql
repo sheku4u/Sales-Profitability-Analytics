@@ -79,3 +79,159 @@ main_calculation as (
 SELECT
 * from previous_calculation_data ; 
 
+
+-- Find the top 5 customers by total revenue
+SELECT
+    c.customer_id,
+    sum(coalesce(o.amount,0)) as total_revenue
+from customers c left join orders o 
+on c.customer_id = o.customer_id
+group by c.customer_id
+order by total_revenue desc
+limit 5;
+
+-- Find customers who have placed at least 5 orders.
+SELECT
+    c.customer_id,
+    count(distinct o.order_id) as total_orders
+from customers c left join orders o 
+on c.customer_id = o.customer_id
+group by c.customer_id
+having count(distinct o.order_id) > 5;
+
+-- Find the second-highest revenue-generating customer.
+with customer_revenue as (
+    SELECT
+        c.customer_id,
+        sum(coalesce(o.amount,0)) as total_revenue
+    from customers c left join orders o 
+    on c.customer_id = o.customer_id
+    group by c.customer_id
+),
+customer_ranked as (
+    SELECT  
+        *,
+        dense_rank() over(order by total_revenue desc) as rnk
+    from customer_revenue
+)
+SELECT
+    customer_id,
+    total_revenue
+from customer_ranked
+where rnk = 2;
+
+-- Calculate monthly revenue and month-over-month revenue growth %
+with monthly_rev as (
+    SELECT
+        date_format(order_date,"%Y-%m") as order_month,
+        sum(amount) as total_revenue
+    from orders
+    group by date_format(order_date,"%Y-%m")
+    order by order_month
+),
+previous_data as (
+    SELECT
+        *,
+        lag(total_revenue) over(order by order_month) as prev_value
+    from monthly_rev
+)
+SELECT
+    order_month,
+    total_revenue,
+    prev_value,
+    (total_revenue - prev_value) as month_over_month_growth,
+    round(((total_revenue - prev_value )/prev_value)*100,2) as month_over_month_growth_pct
+from previous_data;
+
+
+-- revenue is above average but profit margin is below average.
+WITH product_data AS (
+    SELECT
+        p.product_id,
+        p.product_name,
+        SUM(o.sales) AS total_sales,
+        SUM(o.discount) AS total_discount,
+        SUM(o.cogs) AS total_cogs,
+        SUM(o.quantity) AS total_quantity
+    FROM products p
+    LEFT JOIN orders o
+        ON p.product_id = o.product_id
+    GROUP BY
+        p.product_id,
+        p.product_name
+),
+
+product_kpis AS (
+    SELECT
+        product_id,
+        product_name,
+        total_sales,
+        total_discount,
+        total_cogs,
+        total_quantity,
+
+        total_sales - total_discount AS revenue,
+
+        total_sales - total_discount - total_cogs AS profit
+    FROM product_data
+),
+
+product_metrics AS (
+    SELECT
+        *,
+        profit / NULLIF(revenue, 0) AS profit_margin,
+
+        AVG(revenue) OVER () AS avg_product_revenue,
+
+        AVG(
+            profit / NULLIF(revenue, 0)
+        ) OVER () AS avg_profit_margin
+
+    FROM product_kpis
+)
+
+SELECT
+    product_id,
+    product_name,
+    revenue,
+    profit,
+    ROUND(profit_margin * 100, 2) AS profit_margin_pct,
+    ROUND(avg_product_revenue, 2) AS avg_product_revenue,
+    ROUND(avg_profit_margin * 100, 2) AS avg_profit_margin_pct
+FROM product_metrics
+WHERE revenue > avg_product_revenue
+  AND profit_margin < avg_profit_margin
+ORDER BY revenue DESC;
+
+-- Find the top 3 products by revenue within each category.
+with product_data as (
+    SELECT
+        p.product_id,
+        p.product_name,
+        p.category,
+        sum(o.sales) as total_sales
+    from products p left join orders o on p.product_id = o.product_id
+    group by p.product_id,p.product_name, p.category 
+),
+ranked_data as (
+    SELECT
+        *,
+        dense_rank() over(PARTITION by category order by total_sales desc) as rnk
+    from product_data
+)
+SELECT
+    *
+from ranked_data
+where rnk <= 3;
+
+-- placed an order in January 2026 and placed another order in February 2026.
+with customer_order_data as (
+    SELECT
+        date_format(order_date,"%Y-%m") as order_month,
+        customer_id,
+        count(distinct order_id) as total_orders
+    from orders
+    where year(order_date) = 2026 and month(order_date) in (1,2)
+    group by date_format(order_date,"%Y-%m"), customer_id
+),
+
